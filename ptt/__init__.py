@@ -19,19 +19,18 @@ CARD_ID = os.environ.get("CARD_ID", "bluez_card.4C_87_5D_2C_E3_BD")
 
 MIC_PROFILE = os.environ.get("MIC_PROFILE", "headset-head-unit")
 MUTE_PROFILE = os.environ.get("MIC_PROFILE", "a2dp-sink")
-SET_PROFILE = False
 
 
-def mic_on() -> None:
-    if SET_PROFILE:
+def mic_on(set_profile: bool) -> None:
+    if set_profile:
         os.system(f"pactl set-card-profile {CARD_ID} {MIC_PROFILE}")
     os.system("amixer set Capture cap &> /dev/null")
     os.system("amixer set Capture 100% &> /dev/null")
     os.system("play /opt/chime.mp3 &> /dev/null")
 
 
-def mic_off() -> None:
-    if SET_PROFILE:
+def mic_off(set_profile: bool) -> None:
+    if set_profile:
         os.system(f"pactl set-card-profile {CARD_ID} {MUTE_PROFILE}")
     os.system("amixer set Capture nocap &> /dev/null")
     os.system("amixer set Capture 0% &> /dev/null")
@@ -44,8 +43,7 @@ def is_mic_on() -> bool:
 
 @app.command()
 def main(set_profile: bool):
-    global SET_PROFILE
-    SET_PROFILE = set_profile
+    typer.echo(f"Running push-to-talk with {set_profile=}")
     while True:
         try:
             device = InputDevice(KEYBOARD)
@@ -55,15 +53,15 @@ def main(set_profile: bool):
                     # Push to talk
                     if ce.scancode == F24:
                         if ce.keystate == 1:
-                            mic_on()
+                            mic_on(set_profile)
                         elif ce.keystate == 0:
-                            mic_off()
+                            mic_off(set_profile)
                     # On key
                     if ce.scancode == F23 and ce.keystate == 1 and is_mic_on():
-                        mic_off()
+                        mic_off(set_profile)
                     # Off key
                     if ce.scancode == F22 and ce.keystate == 1 and not is_mic_on():
-                        mic_on()
+                        mic_on(set_profile)
 
         except OSError:
             sleep(1)
